@@ -1,0 +1,90 @@
+{
+  "ep_1793668204753": {
+    "id": "ep_1793668204753",
+    "userId": "user_a8ddf0243bc9015e",
+    "title": "Building Great Products in the Age of AI — Episode 42",
+    "audioSourceType": "sample",
+    "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "status": "completed",
+    "statusMessage": "All social media drafts generated successfully!",
+    "progressPercent": 100,
+    "keyMoments": [
+      {
+        "id": "km_1",
+        "title": "Revolutionizing User Experience",
+        "timestamp": "01:00",
+        "summary": "Sarah discusses the misconception that AI is merely an add-on, emphasizing the need for adaptive generative systems.",
+        "quote": "The biggest misconception founders have right now is that AI is just a chat feature you slap onto an existing interface."
+      },
+      {
+        "id": "km_2",
+        "title": "New Metrics for Productivity",
+        "timestamp": "02:00",
+        "summary": "Exploring how AI changes the way we measure productivity, focusing on time-to-value instead of screen time.",
+        "quote": "The new metric is time-to-value and decision velocity."
+      },
+      {
+        "id": "km_3",
+        "title": "Competing with Giants",
+        "timestamp": "03:30",
+        "summary": "Sarah shares strategies for small teams to outpace larger competitors through specialization and speed.",
+        "quote": "Specialization and distribution speed."
+      }
+    ],
+    "drafts": [
+      {
+        "id": "draft_1",
+        "platform": "twitter",
+        "platformName": "X / Twitter Post",
+        "title": "Viral Hook / Takeaway Post",
+        "content": "Edited post: AI is redefining developer velocity!",
+        "characterLimit": 280,
+        "recommendedChannelService": "twitter",
+        "status": "draft"
+      },
+      {
+        "id": "draft_2_thread",
+        "platform": "twitter",
+        "platformName": "X / Twitter Mini-Thread Starter",
+        "title": "Framework & Insight Breakdown",
+        "content": "In today's episode, Sarah Lin reveals how AI isn't just an add-on but a revolutionary force in software. Want to know how? 🧵👇",
+        "characterLimit": 280,
+        "recommendedChannelService": "twitter",
+        "status": "draft"
+      },
+      {
+        "id": "draft_linkedin",
+        "platform": "linkedin",
+        "platformName": "LinkedIn Thought Leadership",
+        "title": "Actionable Industry Insight",
+        "content": "In our latest episode, Sarah Lin discusses how AI is transforming the software landscape. \n\nKey Insights:\n- AI should be integrated, not just added. \n- Measure productivity by time-to-value.\n- Small teams can leverage speed to compete with giants. \n\nHow are you integrating AI in your workflow?",
+        "characterLimit": 3000,
+        "recommendedChannelService": "linkedin",
+        "status": "draft"
+      },
+      {
+        "id": "draft_instagram",
+        "platform": "instagram",
+        "platformName": "Instagram / Reels Caption",
+        "title": "Visual Clip Companion Caption",
+        "content": "🌟 AI is changing the game in software! \n\n💡 Key Takeaways: \n- It’s more than just a chat feature! \n- Focus on time-to-value.\n- Small teams can disrupt big players. \n\n👉 Tag a friend who needs to hear this! #AIInnovation #Podcast",
+        "characterLimit": 2200,
+        "recommendedChannelService": "instagram",
+        "status": "draft"
+      },
+      {
+        "id": "draft_threads",
+        "platform": "threads",
+        "platformName": "Threads / Casual Take",
+        "title": "Casual Behind-The-Scenes Hot Take",
+        "content": "Just finished an insightful chat with Sarah Lin about AI in software! It's wild how small teams can innovate faster than giants. What do you think is the future of AI in our industry?",
+        "characterLimit": 500,
+        "recommendedChannelService": "threads",
+        "status": "draft"
+      }
+    ],
+    "createdAt": "2026-11-03T01:10:04.753Z",
+    "updatedAt": "2026-11-03T01:23:46.819Z",
+    "transcript": "Welcome back to the Build & Scale Podcast. Today we are joined by Sarah Lin, VP of Product, discussing how artificial intelligence is rewriting the playbook for modern consumer and B2B software. \n\nSarah: \"The biggest misconception founders have right now is that AI is just a chat feature you slap onto an existing interface. In reality, the best products using AI will be generative systems where the interface adapts in real-time to what the user is trying to accomplish. Instead of forcing users through 10 clicks across 4 menus, the software anticipates the outcome and delivers it directly.\"\n\nHost: \"That is fascinating. How do you think teams should measure productivity and value when AI is doing 70% of the heavy lifting?\"\n\nSarah: \"We have to stop measuring hours spent in front of the screen. The new metric is time-to-value and decision velocity. If a creator or an operator can turn raw audio from an hour-long podcast into 5 polished, ready-to-publish social assets in under 30 seconds, you haven't just saved them time—you've unlocked entirely new distribution capacity that they simply didn't have before.\"\n\nHost: \"What is your advice for small teams competing against tech giants with massive budgets?\"\n\nSarah: \"Specialization and distribution speed. Large companies have bureaucratic review cycles and legacy tech debt. Small teams can integrate modern APIs like OpenAI, Whisper, and Buffer in a weekend, iterate with real users on Monday, and ship a category-defining workflow before the big tech enterprise can schedule their third committee meeting.\"\n\nHost: \"Such a powerful perspective. Thank you Sarah for coming on the show!\""
+  }
+}

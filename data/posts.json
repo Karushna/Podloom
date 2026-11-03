@@ -1,0 +1,16 @@
+[
+  {
+    "id": "pub_1793668948982",
+    "userId": "test_user_001",
+    "episodeId": "ep_1793668204753",
+    "draftId": "draft_1",
+    "channelId": "demo_tw_1",
+    "channelName": "Podloom Podcast",
+    "channelService": "twitter",
+    "mode": "saveToDraft",
+    "text": "AI is rewriting the product playbook. The new metric is time-to-value and decision velocity.",
+    "bufferPostId": "mock_post_1793668948982",
+    "status": "success",
+    "createdAt": "2026-11-03T01:22:28.982Z"
+  }
+]

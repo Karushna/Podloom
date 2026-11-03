@@ -1,0 +1,30 @@
+{
+  "user_d291571850864a4b": {
+    "id": "user_d291571850864a4b",
+    "bufferAccessTokenEncrypted": "bb023e764166129aa074f6c8:3449b4370e02921287e7bb47e6863f39:16c5e0e3abe22f9c65273d5591eed79117408fc90c02c397",
+    "bufferOrganizationId": "org_demo",
+    "connectedAt": "2026-11-02T15:53:20.043Z",
+    "isMockConnection": true
+  },
+  "user_263ae5a815d11b93": {
+    "id": "user_263ae5a815d11b93",
+    "bufferAccessTokenEncrypted": "0414259fa6d31a59a1362f3f:f83f85b3c5c78217a68449536c2a75f9:e592ff70d26ef50cbd8aba68cefb51a222c4e70c9341fd08",
+    "bufferOrganizationId": "org_demo",
+    "connectedAt": "2026-11-03T01:19:03.072Z",
+    "isMockConnection": true
+  },
+  "user_d6c1ea099044e7a7": {
+    "id": "user_d6c1ea099044e7a7",
+    "bufferAccessTokenEncrypted": "bc727630421060a38f7954dd:e5954742aca50f0cae91696cbf770a22:85bb821d88833dbc9045d0da966024d5dfb245dd5412cc27",
+    "bufferOrganizationId": "org_demo",
+    "connectedAt": "2026-11-03T01:19:18.521Z",
+    "isMockConnection": true
+  },
+  "test_user_001": {
+    "id": "test_user_001",
+    "bufferAccessTokenEncrypted": "a153bb030d8b390e3d802bd7:29ea34e13392d49bb72790de3aa9836b:7247c2a833e8483ad6bf43852abe8c037356134db15d443c",
+    "bufferOrganizationId": "org_demo",
+    "connectedAt": "2026-11-03T01:22:28.744Z",
+    "isMockConnection": true
+  }
+}
