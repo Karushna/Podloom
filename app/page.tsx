@@ -9,6 +9,7 @@ import { ProcessingStatus } from "@/components/ProcessingStatus";
 import { TranscriptViewer } from "@/components/TranscriptViewer";
 import { DraftCard } from "@/components/DraftCard";
 import { SparklesIcon, RefreshIcon } from "@/components/Icons";
+import Link from "next/link";
 
 export default function Home() {
   const [channels, setChannels] = useState<BufferChannel[]>([]);
@@ -218,7 +219,13 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/privacy"
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              Privacy Policy
+            </Link>
             <a
               href="https://buffer.com"
               target="_blank"
@@ -323,8 +330,11 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        Podloom &bull; Powered by OpenAI Whisper, GPT-4o-mini & Buffer GraphQL API
+      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
+        <p>Podloom &bull; Powered by OpenAI Whisper, GPT-4o-mini & Buffer GraphQL API</p>
+        <Link href="/privacy" className="text-slate-400 hover:text-slate-300 underline">
+          Privacy Policy
+        </Link>
       </footer>
     </div>
   );
