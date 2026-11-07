@@ -86,5 +86,80 @@
     "createdAt": "2026-11-03T01:10:04.753Z",
     "updatedAt": "2026-11-03T01:23:46.819Z",
     "transcript": "Welcome back to the Build & Scale Podcast. Today we are joined by Sarah Lin, VP of Product, discussing how artificial intelligence is rewriting the playbook for modern consumer and B2B software. \n\nSarah: \"The biggest misconception founders have right now is that AI is just a chat feature you slap onto an existing interface. In reality, the best products using AI will be generative systems where the interface adapts in real-time to what the user is trying to accomplish. Instead of forcing users through 10 clicks across 4 menus, the software anticipates the outcome and delivers it directly.\"\n\nHost: \"That is fascinating. How do you think teams should measure productivity and value when AI is doing 70% of the heavy lifting?\"\n\nSarah: \"We have to stop measuring hours spent in front of the screen. The new metric is time-to-value and decision velocity. If a creator or an operator can turn raw audio from an hour-long podcast into 5 polished, ready-to-publish social assets in under 30 seconds, you haven't just saved them time—you've unlocked entirely new distribution capacity that they simply didn't have before.\"\n\nHost: \"What is your advice for small teams competing against tech giants with massive budgets?\"\n\nSarah: \"Specialization and distribution speed. Large companies have bureaucratic review cycles and legacy tech debt. Small teams can integrate modern APIs like OpenAI, Whisper, and Buffer in a weekend, iterate with real users on Monday, and ship a category-defining workflow before the big tech enterprise can schedule their third committee meeting.\"\n\nHost: \"Such a powerful perspective. Thank you Sarah for coming on the show!\""
+  },
+  "ep_1793799592321": {
+    "id": "ep_1793799592321",
+    "userId": "user_1f7165e0bc4fdbff",
+    "title": "Untitled Podcast Episode",
+    "audioSourceType": "upload",
+    "fileName": "Record (online-voice-recorder.com).mp3",
+    "fileSizeBytes": 687360,
+    "status": "completed",
+    "statusMessage": "All social media drafts generated successfully!",
+    "progressPercent": 100,
+    "keyMoments": [
+      {
+        "id": "km_1",
+        "title": "Excitement for Sharing Recipes",
+        "timestamp": "00:00",
+        "summary": "The host expresses enthusiasm for discussing a traditional Sri Lankan salad recipe.",
+        "quote": "I'm so excited who are with me we are going to talk about that"
+      }
+    ],
+    "drafts": [
+      {
+        "id": "draft_1",
+        "platform": "twitter",
+        "platformName": "X / Twitter Post",
+        "title": "Discover Sri Lankan Salads!",
+        "content": "🥗 Ever wondered how to make a delicious Sri Lankan salad? Here are some tips: \n- Fresh ingredients are key! \n- Spice it up with local flavors. \n- Share your own twists! \n#SriLankanCuisine",
+        "characterLimit": 280,
+        "recommendedChannelService": "twitter",
+        "status": "draft"
+      },
+      {
+        "id": "draft_2_thread",
+        "platform": "twitter",
+        "platformName": "X / Twitter Mini-Thread Starter",
+        "title": "The Art of Salad Making",
+        "content": "In our latest episode, we dive into the vibrant world of Sri Lankan salads! 🥗✨ What makes a salad truly special? Let's explore the ingredients and techniques. 👇",
+        "characterLimit": 280,
+        "recommendedChannelService": "twitter",
+        "status": "draft"
+      },
+      {
+        "id": "draft_linkedin",
+        "platform": "linkedin",
+        "platformName": "LinkedIn Thought Leadership",
+        "title": "Exploring Culinary Traditions",
+        "content": "In our latest podcast episode, we explore the rich culinary traditions of Sri Lanka through its salad recipes. \n\nHere are some key insights: \n- The importance of fresh, local ingredients. \n- How tradition meets creativity in recipe variations. \n\nWhat’s your favorite salad recipe? Share below!",
+        "characterLimit": 3000,
+        "recommendedChannelService": "linkedin",
+        "status": "draft"
+      },
+      {
+        "id": "draft_instagram",
+        "platform": "instagram",
+        "platformName": "Instagram / Reels Caption",
+        "title": "Sri Lankan Salad Vibes",
+        "content": "🥗✨ Excited to share our favorite Sri Lankan salad recipe! \n\n🌿 Fresh ingredients \n🌶️ Unique spices \n💡 Your suggestions are always welcome! \n\nLet’s create something delicious together! \n#SriLankanCuisine #FoodLovers",
+        "characterLimit": 2200,
+        "recommendedChannelService": "instagram",
+        "status": "draft"
+      },
+      {
+        "id": "draft_threads",
+        "platform": "threads",
+        "platformName": "Threads / Casual Take",
+        "title": "Salad Talk!",
+        "content": "Just recorded an episode about Sri Lankan salads! 🥗 So much fun discussing fresh ingredients and local flavors. What’s your go-to salad recipe? Let’s swap ideas!",
+        "characterLimit": 500,
+        "recommendedChannelService": "threads",
+        "status": "draft"
+      }
+    ],
+    "createdAt": "2026-11-04T13:39:52.321Z",
+    "updatedAt": "2026-11-04T13:40:05.696Z",
+    "transcript": "Hello in this episode we are going to talk about the salad recipe in Sri Lanka how we make. I'm so excited who are with me we are going to talk about that and if you have any suggestions on how we can do this better please let me know go ahead\n"
   }
 }
