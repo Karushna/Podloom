@@ -2,16 +2,17 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { BufferChannel } from "@/lib/buffer";
-import { EpisodeRecord } from "@/lib/db";
+import { EpisodeRecord, PostPublishRecord } from "@/lib/db";
 import { BufferChannelsBar } from "@/components/BufferChannelsBar";
 import { AudioIntake } from "@/components/AudioIntake";
 import { ProcessingStatus } from "@/components/ProcessingStatus";
 import { TranscriptViewer } from "@/components/TranscriptViewer";
 import { DraftCard } from "@/components/DraftCard";
-import { SparklesIcon } from "@/components/Icons";
+import { SparklesIcon, RadioIcon, SendIcon, RefreshIcon } from "@/components/Icons";
 import Link from "next/link";
 
 export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState<"repurpose" | "episodes" | "history" | "channels">("repurpose");
   const [channels, setChannels] = useState<BufferChannel[]>([]);
   const [bufferConnected, setBufferConnected] = useState<boolean>(false);
   const [isMockBuffer, setIsMockBuffer] = useState<boolean>(false);
@@ -19,6 +20,8 @@ export default function DashboardPage() {
   const [channelsLoading, setChannelsLoading] = useState<boolean>(true);
 
   const [currentEpisode, setCurrentEpisode] = useState<EpisodeRecord | null>(null);
+  const [allEpisodes, setAllEpisodes] = useState<EpisodeRecord[]>([]);
+  const [publishHistory, setPublishHistory] = useState<PostPublishRecord[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [bannerNotice, setBannerNotice] = useState<string | null>(null);
 
@@ -39,18 +42,49 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Check URL params for OAuth return query
+  // Fetch episodes library
+  const fetchEpisodes = useCallback(async () => {
+    try {
+      const res = await fetch("/api/episodes");
+      const data = await res.json();
+      if (data.episodes) {
+        setAllEpisodes(data.episodes);
+        if (!currentEpisode && data.episodes.length > 0) {
+          setCurrentEpisode(data.episodes[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch episodes:", err);
+    }
+  }, [currentEpisode]);
+
+  // Fetch publishing history
+  const fetchPublishHistory = useCallback(async () => {
+    try {
+      const res = await fetch("/api/buffer/history");
+      const data = await res.json();
+      if (data.history) {
+        setPublishHistory(data.history);
+      }
+    } catch (err) {
+      console.error("Failed to fetch publish history:", err);
+    }
+  }, []);
+
+  // Initial load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("buffer_connected")) {
-      setBannerNotice("Buffer account connected successfully via OAuth!");
+      setBannerNotice("Buffer connected successfully! Your channels are now active.");
       window.history.replaceState({}, "", "/dashboard");
     } else if (params.get("buffer_error")) {
-      setBannerNotice(`Buffer OAuth error: ${params.get("buffer_error")}`);
+      setBannerNotice(`Buffer connection note: ${params.get("buffer_error")}`);
       window.history.replaceState({}, "", "/dashboard");
     }
     fetchBufferChannels();
-  }, [fetchBufferChannels]);
+    fetchEpisodes();
+    fetchPublishHistory();
+  }, [fetchBufferChannels, fetchEpisodes, fetchPublishHistory]);
 
   // Connect via API key
   const handleConnectToken = async (token: string): Promise<boolean> => {
@@ -91,7 +125,7 @@ export default function DashboardPage() {
     await fetchBufferChannels();
   };
 
-  // Poll processing episode until completed or error
+  // Poll processing episode
   const pollEpisode = useCallback((episodeId: string) => {
     const interval = setInterval(async () => {
       try {
@@ -102,6 +136,7 @@ export default function DashboardPage() {
           if (data.episode.status === "completed" || data.episode.status === "error") {
             clearInterval(interval);
             setIsProcessing(false);
+            fetchEpisodes();
           }
         }
       } catch (err) {
@@ -110,7 +145,7 @@ export default function DashboardPage() {
     }, 1500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchEpisodes]);
 
   // Start processing audio
   const handleStartProcessing = async (data: {
@@ -151,7 +186,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Update a draft in place
+  // In-place draft editing
   const handleUpdateDraft = async (draftId: string, newContent: string) => {
     if (!currentEpisode) return;
     try {
@@ -165,7 +200,6 @@ export default function DashboardPage() {
         }),
       });
 
-      // Update local state
       setCurrentEpisode((prev) => {
         if (!prev) return prev;
         return {
@@ -173,6 +207,7 @@ export default function DashboardPage() {
           drafts: prev.drafts.map((d) => (d.id === draftId ? { ...d, content: newContent } : d)),
         };
       });
+      fetchEpisodes();
     } catch (err) {
       console.error("Failed to update draft:", err);
     }
@@ -196,180 +231,455 @@ export default function DashboardPage() {
         episodeId: currentEpisode?.id,
       }),
     });
-    return await res.json();
+    const result = await res.json();
+    fetchPublishHistory();
+    return result;
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex font-sans selection:bg-indigo-500 selection:text-white">
       {/* Background ambient gradient glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/3 -right-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 left-60 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 right-10 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Top Navigation */}
-      <header className="border-b border-slate-800/80 bg-[#090e1a]/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      {/* Sidebar Navigation */}
+      <aside className="w-64 border-r border-slate-800/80 bg-[#090e1a]/95 backdrop-blur-xl flex flex-col justify-between shrink-0 hidden md:flex min-h-screen sticky top-0">
+        <div>
+          {/* Logo Area */}
+          <div className="h-16 border-b border-slate-800/80 px-6 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-                <SparklesIcon className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+                <SparklesIcon className="w-4 h-4 text-white" />
               </div>
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+              <span className="font-extrabold text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
                 Podloom
               </span>
             </Link>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-              Studio Dashboard
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
+              PRO
             </span>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4">
-            <Link
-              href="/"
-              className="text-xs font-medium text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+          {/* Nav Items */}
+          <div className="p-4 space-y-1">
+            <button
+              onClick={() => setActiveTab("repurpose")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === "repurpose"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
             >
+              <SparklesIcon className="w-4 h-4 shrink-0" />
+              <span>Studio & Repurpose</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("episodes")}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === "episodes"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <RadioIcon className="w-4 h-4 shrink-0" />
+                <span>Episode Library</span>
+              </div>
+              <span className="text-[10px] bg-slate-800/90 px-2 py-0.5 rounded-full font-mono">
+                {allEpisodes.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === "history"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <SendIcon className="w-4 h-4 shrink-0" />
+                <span>Buffer Dispatch Log</span>
+              </div>
+              <span className="text-[10px] bg-slate-800/90 px-2 py-0.5 rounded-full font-mono">
+                {publishHistory.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("channels")}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === "channels"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <RadioIcon className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Connected Channels</span>
+              </div>
+              <span className="text-[10px] bg-slate-800/90 px-2 py-0.5 rounded-full font-mono">
+                {channels.length}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar Footer Account / Buffer Status */}
+        <div className="p-4 border-t border-slate-800/80 space-y-3">
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold text-slate-300">Buffer Integration</span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  bufferConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+                }`}
+              ></span>
+            </div>
+            <p className="text-[10px] text-slate-400">
+              {bufferConnected
+                ? `${channels.length} channel${channels.length === 1 ? "" : "s"} synced`
+                : "Buffer not connected"}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+            <Link href="/" className="hover:text-slate-200 transition-colors">
               ← Overview
             </Link>
-            <div className="h-4 w-px bg-slate-800"></div>
-            <Link
-              href="/privacy"
-              className="text-xs text-slate-400 hover:text-white transition-colors hidden sm:block"
-            >
-              Privacy Policy
+            <Link href="/privacy" className="hover:text-slate-200 transition-colors">
+              Privacy
             </Link>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Header */}
+        <header className="h-16 border-b border-slate-800/80 bg-[#090e1a]/80 backdrop-blur-xl sticky top-0 z-30 px-4 sm:px-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Mobile Tab Pills */}
+            <div className="flex md:hidden bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => setActiveTab("repurpose")}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg ${
+                  activeTab === "repurpose" ? "bg-indigo-600 text-white" : "text-slate-400"
+                }`}
+              >
+                Studio
+              </button>
+              <button
+                onClick={() => setActiveTab("episodes")}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg ${
+                  activeTab === "episodes" ? "bg-indigo-600 text-white" : "text-slate-400"
+                }`}
+              >
+                Episodes
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg ${
+                  activeTab === "history" ? "bg-indigo-600 text-white" : "text-slate-400"
+                }`}
+              >
+                Log
+              </button>
+            </div>
+
+            <div className="hidden md:block">
+              <h1 className="text-sm font-bold text-slate-100 capitalize">
+                {activeTab === "repurpose" && "AI Repurposing Studio"}
+                {activeTab === "episodes" && "Episode Library"}
+                {activeTab === "history" && "Buffer Publishing History"}
+                {activeTab === "channels" && "Connected Social Destinations"}
+              </h1>
+              <p className="text-[11px] text-slate-400">
+                Turn long-form podcast audio into scheduled social media assets.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>Whisper-1 & GPT-4o-mini Ready</span>
+            </div>
+
             <a
               href="https://buffer.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-lg transition-all flex items-center gap-1.5"
+              className="px-3.5 py-1.5 text-xs font-semibold text-slate-200 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl transition-all"
             >
               Buffer Docs ↗
             </a>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Studio Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full space-y-6">
-        {/* Banner notification */}
-        {bannerNotice && (
-          <div className="p-3.5 rounded-xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-200 shadow-lg shadow-indigo-950/40">
-            <div className="flex items-center gap-2">
-              <SparklesIcon className="w-4 h-4 text-indigo-400 shrink-0" />
-              <span>{bannerNotice}</span>
-            </div>
-            <button
-              onClick={() => setBannerNotice(null)}
-              className="text-indigo-400 hover:text-indigo-200 ml-4 font-mono text-sm"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* Buffer Connection Bar */}
-        <BufferChannelsBar
-          channels={channels}
-          connected={bufferConnected}
-          isMock={isMockBuffer}
-          canOAuth={canOAuth}
-          isLoading={channelsLoading}
-          onRefresh={fetchBufferChannels}
-          onDisconnect={handleDisconnectBuffer}
-          onConnectToken={handleConnectToken}
-          onConnectDemo={handleConnectDemo}
-        />
-
-        {/* Audio Intake Component */}
-        <AudioIntake
-          onStartProcessing={handleStartProcessing}
-          isProcessing={isProcessing}
-        />
-
-        {/* Processing Indicator */}
-        {currentEpisode && currentEpisode.status !== "idle" && (
-          <ProcessingStatus episode={currentEpisode} />
-        )}
-
-        {/* Episode Content */}
-        {currentEpisode && currentEpisode.status === "completed" && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-              <div>
-                <span className="text-[10px] uppercase font-mono text-indigo-400 font-bold tracking-widest">
-                  Active Episode
-                </span>
-                <h2 className="text-xl font-bold text-slate-100 mt-0.5">{currentEpisode.title}</h2>
+        {/* View Content */}
+        <main className="p-4 sm:p-8 flex-1 space-y-6 max-w-7xl w-full mx-auto">
+          {/* Banner Notice */}
+          {bannerNotice && (
+            <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-200 shadow-md">
+              <div className="flex items-center gap-2">
+                <SparklesIcon className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>{bannerNotice}</span>
               </div>
-              <span className="text-xs font-medium text-slate-300 bg-slate-900/90 border border-slate-800 px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                {currentEpisode.drafts.length} social drafts synthesized
-              </span>
+              <button
+                onClick={() => setBannerNotice(null)}
+                className="text-indigo-400 hover:text-indigo-200 font-mono text-sm ml-4"
+              >
+                ✕
+              </button>
             </div>
+          )}
 
-            {/* Transcript & Moments viewer */}
-            {currentEpisode.transcript && (
-              <TranscriptViewer
-                transcript={currentEpisode.transcript}
-                keyMoments={currentEpisode.keyMoments}
+          {/* TAB 1: STUDIO & REPURPOSE */}
+          {activeTab === "repurpose" && (
+            <div className="space-y-6">
+              {/* Buffer Bar */}
+              <BufferChannelsBar
+                channels={channels}
+                connected={bufferConnected}
+                isMock={isMockBuffer}
+                canOAuth={canOAuth}
+                isLoading={channelsLoading}
+                onRefresh={fetchBufferChannels}
+                onDisconnect={handleDisconnectBuffer}
+                onConnectToken={handleConnectToken}
+                onConnectDemo={handleConnectDemo}
               />
-            )}
 
-            {/* Social Media Drafts Grid */}
+              {/* Audio Intake */}
+              <AudioIntake
+                onStartProcessing={handleStartProcessing}
+                isProcessing={isProcessing}
+              />
+
+              {/* Processing Bar */}
+              {currentEpisode && currentEpisode.status !== "idle" && (
+                <ProcessingStatus episode={currentEpisode} />
+              )}
+
+              {/* Episode Result View */}
+              {currentEpisode && currentEpisode.status === "completed" && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div>
+                      <span className="text-[10px] uppercase font-mono text-indigo-400 font-bold tracking-widest">
+                        Loaded Episode
+                      </span>
+                      <h2 className="text-xl font-bold text-slate-100 mt-0.5">{currentEpisode.title}</h2>
+                    </div>
+                    <span className="text-xs font-medium text-slate-300 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      {currentEpisode.drafts.length} ready-to-publish drafts
+                    </span>
+                  </div>
+
+                  {/* Transcript Viewer */}
+                  {currentEpisode.transcript && (
+                    <TranscriptViewer
+                      transcript={currentEpisode.transcript}
+                      keyMoments={currentEpisode.keyMoments}
+                    />
+                  )}
+
+                  {/* Social Draft Cards */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-100">Social Media Drafts</h3>
+                      <p className="text-xs text-slate-400">
+                        Tailored for individual platform constraints. Edit before sending to Buffer.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {currentEpisode.drafts.map((draft) => (
+                        <DraftCard
+                          key={draft.id}
+                          draft={draft}
+                          episodeId={currentEpisode.id}
+                          channels={channels}
+                          isBufferConnected={bufferConnected}
+                          onUpdateDraft={handleUpdateDraft}
+                          onSendToBuffer={handleSendToBuffer}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: EPISODES LIBRARY */}
+          {activeTab === "episodes" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-                    <span>Generated Social Drafts</span>
-                  </h3>
+                  <h2 className="text-base font-bold text-slate-100">Processed Episodes</h2>
                   <p className="text-xs text-slate-400">
-                    Review and edit copy customized for platform character limits, then dispatch directly into Buffer.
+                    All episodes processed in your current workspace session.
                   </p>
                 </div>
+                <button
+                  onClick={() => setActiveTab("repurpose")}
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <SparklesIcon className="w-3.5 h-3.5" />
+                  <span>Process New Episode</span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {currentEpisode.drafts.map((draft) => (
-                  <DraftCard
-                    key={draft.id}
-                    draft={draft}
-                    episodeId={currentEpisode.id}
-                    channels={channels}
-                    isBufferConnected={bufferConnected}
-                    onUpdateDraft={handleUpdateDraft}
-                    onSendToBuffer={handleSendToBuffer}
-                  />
-                ))}
-              </div>
+              {allEpisodes.length === 0 ? (
+                <div className="p-12 text-center rounded-2xl bg-[#090e1a] border border-slate-800/80">
+                  <p className="text-xs text-slate-400">No episodes processed yet in this session.</p>
+                  <button
+                    onClick={() => setActiveTab("repurpose")}
+                    className="mt-3 px-4 py-2 text-xs font-semibold text-indigo-400 hover:text-white bg-indigo-950/40 border border-indigo-700/50 rounded-xl"
+                  >
+                    Load Sample Episode
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {allEpisodes.map((ep) => (
+                    <div
+                      key={ep.id}
+                      onClick={() => {
+                        setCurrentEpisode(ep);
+                        setActiveTab("repurpose");
+                      }}
+                      className="p-4 rounded-2xl bg-[#090e1a] border border-slate-800 hover:border-indigo-500/40 cursor-pointer transition-all flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-slate-200">{ep.title}</h3>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                              ep.status === "completed"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-indigo-500/10 text-indigo-400"
+                            }`}
+                          >
+                            {ep.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {ep.drafts.length} drafts generated &bull; {new Date(ep.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      <span className="text-xs text-indigo-400 font-semibold flex items-center gap-1">
+                        Open in Studio →
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
-      </main>
+          )}
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-[#060911] py-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2.5">
-        <p>Podloom &bull; Powered by OpenAI Whisper, GPT-4o-mini & Buffer GraphQL API</p>
-        <div className="flex items-center gap-4 text-slate-400">
-          <Link href="/" className="hover:text-slate-200 transition-colors">
-            Overview
-          </Link>
-          <span>&bull;</span>
-          <Link href="/privacy" className="hover:text-slate-200 transition-colors">
-            Privacy Policy
-          </Link>
-          <span>&bull;</span>
-          <a
-            href="https://buffer.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-slate-200 transition-colors"
-          >
-            Buffer Platform
-          </a>
-        </div>
-      </footer>
+          {/* TAB 3: BUFFER DISPATCH LOG */}
+          {activeTab === "history" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-slate-100">Buffer Dispatch History</h2>
+                  <p className="text-xs text-slate-400">
+                    Live log of all drafts dispatched from Podloom into your Buffer account.
+                  </p>
+                </div>
+                <button
+                  onClick={fetchPublishHistory}
+                  className="p-2 text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 rounded-xl"
+                  title="Refresh"
+                >
+                  <RefreshIcon className="w-4 h-4" />
+                </button>
+              </div>
+
+              {publishHistory.length === 0 ? (
+                <div className="p-12 text-center rounded-2xl bg-[#090e1a] border border-slate-800/80">
+                  <p className="text-xs text-slate-400">No drafts sent to Buffer yet.</p>
+                  <button
+                    onClick={() => setActiveTab("repurpose")}
+                    className="mt-3 px-4 py-2 text-xs font-semibold text-indigo-400 hover:text-white bg-indigo-950/40 border border-indigo-700/50 rounded-xl"
+                  >
+                    Generate & Send Draft
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {publishHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-2xl bg-[#090e1a] border border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-200">
+                            {item.channelName}
+                          </span>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                            {item.channelService}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                            ✓ {item.status}
+                          </span>
+                        </div>
+                        <p className="text-xs font-mono text-slate-400 line-clamp-1">{item.text}</p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-[11px] text-slate-500 block">
+                          {new Date(item.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="text-[10px] font-mono text-indigo-400">
+                          {item.bufferPostId ? `ID: ${item.bufferPostId.slice(0, 14)}...` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: CHANNELS */}
+          {activeTab === "channels" && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-100">Connected Social Channels</h2>
+                <p className="text-xs text-slate-400">
+                  Buffer channels authorized to receive social posts and threads.
+                </p>
+              </div>
+
+              <BufferChannelsBar
+                channels={channels}
+                connected={bufferConnected}
+                isMock={isMockBuffer}
+                canOAuth={canOAuth}
+                isLoading={channelsLoading}
+                onRefresh={fetchBufferChannels}
+                onDisconnect={handleDisconnectBuffer}
+                onConnectToken={handleConnectToken}
+                onConnectDemo={handleConnectDemo}
+              />
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
