@@ -16,10 +16,15 @@ export async function GET() {
     );
   }
 
-  // Generate random state for CSRF protection
+  // Generate PKCE code_verifier and code_challenge
+  const codeVerifier = crypto.randomBytes(32).toString("base64url");
+  const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+
+  // Store codeVerifier securely inside state payload
   const state = Buffer.from(
     JSON.stringify({
       userId,
+      codeVerifier,
       nonce: crypto.randomBytes(16).toString("hex"),
     })
   ).toString("base64url");
@@ -28,6 +33,8 @@ export async function GET() {
   bufferAuthUrl.searchParams.set("client_id", clientId);
   bufferAuthUrl.searchParams.set("redirect_uri", redirectUri);
   bufferAuthUrl.searchParams.set("response_type", "code");
+  bufferAuthUrl.searchParams.set("code_challenge", codeChallenge);
+  bufferAuthUrl.searchParams.set("code_challenge_method", "S256");
   bufferAuthUrl.searchParams.set("state", state);
 
   return NextResponse.redirect(bufferAuthUrl.toString());

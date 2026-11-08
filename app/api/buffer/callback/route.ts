@@ -22,9 +22,11 @@ export async function GET(req: NextRequest) {
   }
 
   let userId: string;
+  let codeVerifier: string | undefined;
   try {
     const parsedState = JSON.parse(Buffer.from(stateStr, "base64url").toString("utf-8"));
     userId = parsedState.userId;
+    codeVerifier = parsedState.codeVerifier;
   } catch {
     return NextResponse.redirect(`${baseUrl}/dashboard?buffer_error=Invalid_state_parameter`);
   }
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest) {
   const redirectUri = process.env.BUFFER_REDIRECT_URI || `${baseUrl}/api/buffer/callback`;
 
   try {
-    // Exchange authorization code for access token via Buffer OAuth Token Endpoint
+    // Exchange authorization code for access token via Buffer OAuth Token Endpoint with PKCE
     const bodyParams = new URLSearchParams({
       client_id: clientId || "",
       client_secret: clientSecret || "",
@@ -42,6 +44,10 @@ export async function GET(req: NextRequest) {
       redirect_uri: redirectUri,
       code,
     });
+
+    if (codeVerifier) {
+      bodyParams.set("code_verifier", codeVerifier);
+    }
 
     const tokenRes = await fetch("https://auth.buffer.com/token", {
       method: "POST",
