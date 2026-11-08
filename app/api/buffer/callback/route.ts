@@ -13,12 +13,12 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      `${baseUrl}/?buffer_error=${encodeURIComponent(errorDescription || error)}`
+      `${baseUrl}/dashboard?buffer_error=${encodeURIComponent(errorDescription || error)}`
     );
   }
 
   if (!code || !stateStr) {
-    return NextResponse.redirect(`${baseUrl}/?buffer_error=Missing_authorization_code_or_state`);
+    return NextResponse.redirect(`${baseUrl}/dashboard?buffer_error=Missing_authorization_code_or_state`);
   }
 
   let userId: string;
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const parsedState = JSON.parse(Buffer.from(stateStr, "base64url").toString("utf-8"));
     userId = parsedState.userId;
   } catch {
-    return NextResponse.redirect(`${baseUrl}/?buffer_error=Invalid_state_parameter`);
+    return NextResponse.redirect(`${baseUrl}/dashboard?buffer_error=Invalid_state_parameter`);
   }
 
   const clientId = process.env.BUFFER_CLIENT_ID;
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       const errText = await tokenRes.text();
       console.error("Buffer token exchange failed:", errText);
       return NextResponse.redirect(
-        `${baseUrl}/?buffer_error=${encodeURIComponent("Failed to exchange token with Buffer: " + errText)}`
+        `${baseUrl}/dashboard?buffer_error=${encodeURIComponent("Failed to exchange token with Buffer: " + errText)}`
       );
     }
 
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     const accessToken = tokenData.access_token;
 
     if (!accessToken) {
-      return NextResponse.redirect(`${baseUrl}/?buffer_error=No_access_token_returned_by_Buffer`);
+      return NextResponse.redirect(`${baseUrl}/dashboard?buffer_error=No_access_token_returned_by_Buffer`);
     }
 
     // Retrieve organization id to save with token
@@ -81,9 +81,9 @@ export async function GET(req: NextRequest) {
     // Save encrypted token on server (isolated by user ID)
     setUserBufferToken(userId, accessToken, orgId, false);
 
-    return NextResponse.redirect(`${baseUrl}/?buffer_connected=true`);
+    return NextResponse.redirect(`${baseUrl}/dashboard?buffer_connected=true`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.redirect(`${baseUrl}/?buffer_error=${encodeURIComponent(msg)}`);
+    return NextResponse.redirect(`${baseUrl}/dashboard?buffer_error=${encodeURIComponent(msg)}`);
   }
 }

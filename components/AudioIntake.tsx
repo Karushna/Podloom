@@ -33,20 +33,22 @@ export function AudioIntake({ onStartProcessing, isProcessing }: AudioIntakeProp
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm mb-6">
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+    <div className="bg-[#090e1a] border border-slate-800/80 rounded-2xl p-6 shadow-xl shadow-black/40 backdrop-blur-md">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800/80">
         <div>
-          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-            <SparklesIcon className="w-5 h-5 text-indigo-400" />
-            Process Podcast Episode
+          <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+              <SparklesIcon className="w-5 h-5" />
+            </span>
+            Episode Ingestion & Repurposing
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-400 mt-1">
             Ingest podcast audio, generate OpenAI Whisper transcript, and produce platform-specific social copy.
           </p>
         </div>
 
         {/* Tab switch */}
-        <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
           <button
             type="button"
             onClick={() => setTab("sample")}

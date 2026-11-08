@@ -54,73 +54,73 @@ export function BufferChannelsBar({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm mb-6">
+    <div className="bg-[#090e1a] border border-slate-800/80 rounded-2xl p-5 shadow-xl shadow-black/40 backdrop-blur-md">
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Left: Connection Status */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
             <RadioIcon className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-slate-100 text-sm">Buffer Channels</h3>
+              <h3 className="font-bold text-slate-100 text-sm">Buffer Distribution Channels</h3>
               {connected ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {isMock ? "Demo Sandbox Connected" : "Live Buffer Connected"}
+                  {isMock ? "Demo Sandbox Mode" : "Live Buffer Connected"}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  Disconnected
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  Not Connected
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-1">
               {connected
                 ? `${channels.length} connected destination${channels.length === 1 ? "" : "s"} ready for instant dispatch`
-                : "Connect your Buffer account to publish and schedule drafts directly"}
+                : "Authorize your Buffer account or use 1-click sandbox to send drafts into queue"}
             </p>
           </div>
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {connected ? (
             <>
               <button
                 onClick={onRefresh}
                 disabled={isLoading}
                 title="Sync Channels"
-                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition-all border border-slate-800"
               >
                 <RefreshIcon className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               </button>
               <button
                 onClick={onDisconnect}
-                className="text-xs px-3 py-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors border border-rose-500/20"
+                className="text-xs px-3.5 py-2 font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all border border-rose-500/30"
               >
                 Disconnect
               </button>
             </>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {canOAuth && (
                 <a
                   href="/api/buffer/authorize"
-                  className="px-3.5 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-all"
+                  className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-lg shadow-indigo-600/30 hover:scale-[1.02] transition-all flex items-center gap-1.5"
                 >
-                  Connect with Buffer OAuth
+                  <span>Connect with Buffer OAuth</span>
                 </a>
               )}
               <button
                 onClick={() => setShowTokenModal(true)}
-                className="px-3 py-1.5 text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors"
+                className="px-3.5 py-2 text-xs font-medium text-slate-200 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl transition-colors"
               >
-                Connect with API Key
+                API Key
               </button>
               <button
                 onClick={onConnectDemo}
-                className="px-3 py-1.5 text-xs font-medium text-indigo-300 hover:text-indigo-200 bg-indigo-950/40 hover:bg-indigo-950/70 border border-indigo-700/40 rounded-lg transition-colors"
+                className="px-3.5 py-2 text-xs font-semibold text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-700/50 rounded-xl transition-all"
               >
                 ⚡ 1-Click Demo Sandbox
               </button>
@@ -131,21 +131,21 @@ export function BufferChannelsBar({
 
       {/* Connected Channel Pills */}
       {connected && channels.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-400 mr-1">Active Channels:</span>
+        <div className="mt-4 pt-3.5 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-slate-400 mr-1">Active Channels:</span>
           {channels.map((ch) => (
             <div
               key={ch.id}
-              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/60 border border-slate-700 text-xs text-slate-200"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-200 shadow-xs"
             >
               {ch.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={ch.avatar} alt={ch.name} className="w-4 h-4 rounded-full object-cover" />
+                <img src={ch.avatar} alt={ch.name} className="w-4 h-4 rounded-full object-cover ring-1 ring-slate-700" />
               ) : (
-                <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                <div className="w-2.5 h-2.5 rounded-full bg-indigo-400" />
               )}
-              <span className="font-medium">{ch.name}</span>
-              <span className="text-[10px] uppercase font-semibold text-slate-400 bg-slate-900 px-1 py-0.5 rounded">
+              <span className="font-semibold">{ch.name}</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
                 {ch.service}
               </span>
             </div>

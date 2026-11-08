@@ -1,228 +1,32 @@
-"use client";
-
-import { useEffect, useState, useCallback } from "react";
-import { BufferChannel } from "@/lib/buffer";
-import { EpisodeRecord } from "@/lib/db";
-import { BufferChannelsBar } from "@/components/BufferChannelsBar";
-import { AudioIntake } from "@/components/AudioIntake";
-import { ProcessingStatus } from "@/components/ProcessingStatus";
-import { TranscriptViewer } from "@/components/TranscriptViewer";
-import { DraftCard } from "@/components/DraftCard";
-import { SparklesIcon, RefreshIcon } from "@/components/Icons";
 import Link from "next/link";
+import { SparklesIcon, RadioIcon, SendIcon } from "@/components/Icons";
 
-export default function Home() {
-  const [channels, setChannels] = useState<BufferChannel[]>([]);
-  const [bufferConnected, setBufferConnected] = useState<boolean>(false);
-  const [isMockBuffer, setIsMockBuffer] = useState<boolean>(false);
-  const [canOAuth, setCanOAuth] = useState<boolean>(false);
-  const [channelsLoading, setChannelsLoading] = useState<boolean>(true);
-
-  const [currentEpisode, setCurrentEpisode] = useState<EpisodeRecord | null>(null);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [bannerNotice, setBannerNotice] = useState<string | null>(null);
-
-  // Fetch Buffer Channel status
-  const fetchBufferChannels = useCallback(async () => {
-    setChannelsLoading(true);
-    try {
-      const res = await fetch("/api/buffer/channels");
-      const data = await res.json();
-      setBufferConnected(Boolean(data.connected));
-      setIsMockBuffer(Boolean(data.isMock));
-      setChannels(data.channels || []);
-      setCanOAuth(Boolean(data.canOAuth));
-    } catch (err) {
-      console.error("Failed to load channels:", err);
-    } finally {
-      setChannelsLoading(false);
-    }
-  }, []);
-
-  // Check URL params for OAuth return query
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("buffer_connected")) {
-      setBannerNotice("Buffer account connected successfully via OAuth!");
-      window.history.replaceState({}, "", "/");
-    } else if (params.get("buffer_error")) {
-      setBannerNotice(`Buffer OAuth error: ${params.get("buffer_error")}`);
-      window.history.replaceState({}, "", "/");
-    }
-    fetchBufferChannels();
-  }, [fetchBufferChannels]);
-
-  // Connect via API key
-  const handleConnectToken = async (token: string): Promise<boolean> => {
-    try {
-      const res = await fetch("/api/buffer/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "connect_token", accessToken: token }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        await fetchBufferChannels();
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  };
-
-  // Connect Demo mode
-  const handleConnectDemo = async () => {
-    await fetch("/api/buffer/channels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "connect_demo" }),
-    });
-    await fetchBufferChannels();
-  };
-
-  // Disconnect Buffer
-  const handleDisconnectBuffer = async () => {
-    await fetch("/api/buffer/channels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "disconnect" }),
-    });
-    await fetchBufferChannels();
-  };
-
-  // Poll processing episode until completed or error
-  const pollEpisode = useCallback((episodeId: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/episodes?id=${episodeId}`);
-        const data = await res.json();
-        if (data.episode) {
-          setCurrentEpisode(data.episode);
-          if (data.episode.status === "completed" || data.episode.status === "error") {
-            clearInterval(interval);
-            setIsProcessing(false);
-          }
-        }
-      } catch (err) {
-        console.error("Polling error:", err);
-      }
-    }, 1500);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Start processing audio
-  const handleStartProcessing = async (data: {
-    sourceType: "upload" | "url" | "sample";
-    title?: string;
-    audioUrl?: string;
-    audioFile?: File;
-  }) => {
-    setIsProcessing(true);
-    try {
-      let res: Response;
-      if (data.audioFile) {
-        const fd = new FormData();
-        fd.append("sourceType", data.sourceType);
-        if (data.title) fd.append("title", data.title);
-        fd.append("audioFile", data.audioFile);
-        res = await fetch("/api/episodes", { method: "POST", body: fd });
-      } else {
-        res = await fetch("/api/episodes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sourceType: data.sourceType,
-            title: data.title,
-            audioUrl: data.audioUrl,
-          }),
-        });
-      }
-
-      const resData = await res.json();
-      if (resData.episode) {
-        setCurrentEpisode(resData.episode);
-        pollEpisode(resData.episode.id);
-      }
-    } catch (err) {
-      console.error("Submission failed:", err);
-      setIsProcessing(false);
-    }
-  };
-
-  // Update a draft in place
-  const handleUpdateDraft = async (draftId: string, newContent: string) => {
-    if (!currentEpisode) return;
-    try {
-      await fetch("/api/episodes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          episodeId: currentEpisode.id,
-          draftId,
-          content: newContent,
-        }),
-      });
-
-      // Update local state
-      setCurrentEpisode((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          drafts: prev.drafts.map((d) => (d.id === draftId ? { ...d, content: newContent } : d)),
-        };
-      });
-    } catch (err) {
-      console.error("Failed to update draft:", err);
-    }
-  };
-
-  // Dispatch draft to Buffer
-  const handleSendToBuffer = async (params: {
-    channelId: string;
-    channelName: string;
-    channelService: string;
-    text: string;
-    saveToDraft: boolean;
-    mode: "addToQueue" | "shareNow";
-    draftId: string;
-  }) => {
-    const res = await fetch("/api/buffer/posts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...params,
-        episodeId: currentEpisode?.id,
-      }),
-    });
-    return await res.json();
-  };
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navigation */}
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white overflow-hidden">
+      {/* Background radial glow effects */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-indigo-600/20 via-violet-600/10 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-10 left-10 w-96 h-96 bg-indigo-900/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 right-10 w-96 h-96 bg-purple-900/10 rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Navigation */}
+      <header className="border-b border-slate-800/60 bg-[#090e1a]/70 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
               <SparklesIcon className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-base tracking-tight text-white">Podloom</span>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  Buffer Dispatch
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400">Podcast to Multi-Platform Social Media Engine</p>
-            </div>
-          </div>
+            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+              Podloom
+            </span>
+          </Link>
 
-          <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-4 sm:gap-6">
             <Link
               href="/privacy"
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors hidden sm:block"
             >
               Privacy Policy
             </Link>
@@ -230,111 +34,216 @@ export default function Home() {
               href="https://buffer.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors hidden sm:block"
             >
               Buffer Docs ↗
             </a>
-          </div>
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 transition-all flex items-center gap-1.5"
+            >
+              <span>Try Free</span>
+              <span className="text-indigo-200">→</span>
+            </Link>
+          </nav>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
-        {/* Banner alerts */}
-        {bannerNotice && (
-          <div className="mb-6 p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between text-xs text-indigo-200">
-            <span>{bannerNotice}</span>
-            <button
-              onClick={() => setBannerNotice(null)}
-              className="text-indigo-400 hover:text-indigo-200 ml-4 font-mono text-sm"
+      {/* Hero Section */}
+      <main className="flex-1">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-16 text-center space-y-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+            Automated Podcast Content Repurposing with Buffer Integration
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
+            Turn podcast audio into{" "}
+            <span className="bg-gradient-to-r from-indigo-400 via-violet-300 to-pink-400 bg-clip-text text-transparent">
+              viral social drafts
+            </span>{" "}
+            and dispatch straight to Buffer.
+          </h1>
+
+          <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            Upload audio or paste a public podcast URL. Podloom extracts the punchiest moments with Whisper AI, formulates platform-specific posts, and dispatches them directly to your connected Buffer channels.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <Link
+              href="/dashboard"
+              className="w-full sm:w-auto px-8 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-xl shadow-indigo-600/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
             >
-              ✕
-            </button>
+              <SparklesIcon className="w-4 h-4 text-white" />
+              <span>Try Free (Instant Studio)</span>
+            </Link>
+            <a
+              href="https://buffer.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-6 py-3.5 text-sm font-semibold text-slate-300 bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              <span>Explore Buffer API</span>
+              <span className="text-slate-500">↗</span>
+            </a>
           </div>
-        )}
 
-        {/* Buffer Status Component */}
-        <BufferChannelsBar
-          channels={channels}
-          connected={bufferConnected}
-          isMock={isMockBuffer}
-          canOAuth={canOAuth}
-          isLoading={channelsLoading}
-          onRefresh={fetchBufferChannels}
-          onDisconnect={handleDisconnectBuffer}
-          onConnectToken={handleConnectToken}
-          onConnectDemo={handleConnectDemo}
-        />
+          {/* Social Platforms Support Pills */}
+          <div className="pt-8 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
+            <span className="text-slate-500">Optimized for:</span>
+            <span className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-sky-400">
+              𝕏 Twitter Threads
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-blue-400">
+              LinkedIn Thought Leadership
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-purple-400">
+              Threads Casual Takes
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-pink-400">
+              Instagram Reels Captions
+            </span>
+          </div>
 
-        {/* Audio Intake Component */}
-        <AudioIntake
-          onStartProcessing={handleStartProcessing}
-          isProcessing={isProcessing}
-        />
-
-        {/* Processing Indicator */}
-        {currentEpisode && currentEpisode.status !== "idle" && (
-          <ProcessingStatus episode={currentEpisode} />
-        )}
-
-        {/* Episode Content */}
-        {currentEpisode && currentEpisode.status === "completed" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div>
-                <span className="text-[10px] uppercase font-mono text-indigo-400 font-semibold tracking-wider">
-                  Active Episode
+          {/* Interactive Preview Mockup */}
+          <div className="pt-10 max-w-5xl mx-auto">
+            <div className="relative rounded-2xl bg-gradient-to-b from-slate-800/60 to-slate-900/90 border border-slate-800 p-2 sm:p-4 shadow-2xl shadow-indigo-950/50">
+              <div className="flex items-center justify-between pb-3 px-2 border-b border-slate-800/80 text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-rose-500/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                  <span className="ml-2 font-mono text-[11px] text-slate-500">podloom-studio-preview.app</span>
+                </div>
+                <span className="hidden sm:inline-block text-[11px] text-indigo-400 font-mono">
+                  Connected to Buffer GraphQL API
                 </span>
-                <h2 className="text-lg font-bold text-slate-100">{currentEpisode.title}</h2>
-              </div>
-              <span className="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-full">
-                {currentEpisode.drafts.length} drafts ready
-              </span>
-            </div>
-
-            {/* Transcript & Moments viewer */}
-            {currentEpisode.transcript && (
-              <TranscriptViewer
-                transcript={currentEpisode.transcript}
-                keyMoments={currentEpisode.keyMoments}
-              />
-            )}
-
-            {/* Social Media Drafts Grid */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <span>Generated Social Drafts</span>
-                  <span className="text-xs font-normal text-slate-400">
-                    (review, refine, and send to Buffer)
-                  </span>
-                </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentEpisode.drafts.map((draft) => (
-                  <DraftCard
-                    key={draft.id}
-                    draft={draft}
-                    episodeId={currentEpisode.id}
-                    channels={channels}
-                    isBufferConnected={bufferConnected}
-                    onUpdateDraft={handleUpdateDraft}
-                    onSendToBuffer={handleSendToBuffer}
-                  />
-                ))}
+              {/* Preview Body */}
+              <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                {/* Step 1 */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xs">
+                    01
+                  </div>
+                  <h4 className="font-semibold text-slate-200 text-sm">Ingest Episode</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Upload MP3/WAV or input an episode feed URL. OpenAI Whisper transcribes every word with timestamps.
+                  </p>
+                </div>
+
+                {/* Step 2 */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-xs">
+                    02
+                  </div>
+                  <h4 className="font-semibold text-slate-200 text-sm">Synthesize Moments</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    GPT-4o-mini extracts high-impact quotes and crafts platform-optimized copy with character length checks.
+                  </p>
+                </div>
+
+                {/* Step 3 */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                    03
+                  </div>
+                  <h4 className="font-semibold text-slate-200 text-sm">Send to Buffer</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Select your connected Buffer channel. Save directly to your Buffer Drafts queue in 1 click.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        )}
+        </section>
+
+        {/* Feature Highlights Grid */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 border-t border-slate-800/60">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              Built for speed, accuracy, and reach.
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2">
+              Every feature designed to cut podcast distribution time from 2 hours down to 30 seconds.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-2xl bg-[#090e1a] border border-slate-800 hover:border-slate-700 transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <RadioIcon className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-base text-slate-100">Live Buffer Channels</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Connect via OAuth or API key to automatically retrieve all your connected social channels (Twitter, LinkedIn, Threads, Instagram).
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-[#090e1a] border border-slate-800 hover:border-slate-700 transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                <SparklesIcon className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-base text-slate-100">Platform-Tailored Drafts</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Posts are calibrated for algorithmic reach with proper hooks, line breaks, bullet points, and character limit indicators.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-[#090e1a] border border-slate-800 hover:border-slate-700 transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <SendIcon className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-base text-slate-100">Zero Credential Exposure</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Tokens are encrypted server-side using AES-256-GCM. User records and draft histories remain completely isolated.
+              </p>
+            </div>
+          </div>
+
+          {/* CTA Banner */}
+          <div className="mt-16 p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-indigo-950/70 via-slate-900 to-violet-950/60 border border-indigo-500/30 text-center space-y-5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Ready to automate your podcast distribution?
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto">
+              Test out the sample episode or connect your Buffer account in seconds.
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-xl shadow-indigo-600/30 hover:scale-105 transition-all"
+              >
+                <span>Try Free (Open Studio)</span>
+                <span>→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
+      <footer className="border-t border-slate-900 bg-[#060911] py-8 text-center text-xs text-slate-500 flex flex-col items-center gap-3">
         <p>Podloom &bull; Powered by OpenAI Whisper, GPT-4o-mini & Buffer GraphQL API</p>
-        <Link href="/privacy" className="text-slate-400 hover:text-slate-300 underline">
-          Privacy Policy
-        </Link>
+        <div className="flex items-center gap-4 text-slate-400">
+          <Link href="/dashboard" className="hover:text-slate-200 transition-colors">
+            Studio Dashboard
+          </Link>
+          <span>&bull;</span>
+          <Link href="/privacy" className="hover:text-slate-200 transition-colors">
+            Privacy Policy
+          </Link>
+          <span>&bull;</span>
+          <a
+            href="https://buffer.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-200 transition-colors"
+          >
+            Buffer API
+          </a>
+        </div>
       </footer>
     </div>
   );
