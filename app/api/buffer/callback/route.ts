@@ -9,7 +9,12 @@ export async function GET(req: NextRequest) {
   const error = url.searchParams.get("error");
   const errorDescription = url.searchParams.get("error_description");
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  // Auto-detect the current host (works on Vercel preview, production, and localhost)
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "podloom.vercel.app";
+  const protocol = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const detectedOrigin = `${protocol}://${host}`;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || detectedOrigin;
 
   if (error) {
     return NextResponse.redirect(

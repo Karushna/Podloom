@@ -1,11 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateUserId } from "@/lib/auth";
 import crypto from "crypto";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const userId = await getOrCreateUserId();
   const clientId = process.env.BUFFER_CLIENT_ID;
-  const redirectUri = process.env.BUFFER_REDIRECT_URI || "http://localhost:3000/api/buffer/callback";
+
+  // Auto-detect the current host (works on Vercel preview, production, and localhost)
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "podloom.vercel.app";
+  const protocol = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const detectedOrigin = `${protocol}://${host}`;
+
+  const redirectUri =
+    process.env.BUFFER_REDIRECT_URI || `${detectedOrigin}/api/buffer/callback`;
 
   if (!clientId) {
     return NextResponse.json(
