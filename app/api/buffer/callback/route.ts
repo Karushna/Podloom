@@ -41,26 +41,48 @@ export async function GET(req: NextRequest) {
   const redirectUri = process.env.BUFFER_REDIRECT_URI || `${baseUrl}/api/buffer/callback`;
 
   try {
-    // Exchange authorization code for access token via Buffer OAuth Token Endpoint with PKCE
+    // Exchange authorization code for access token via Buffer OAuth Token Endpoint
+    // Support both confidential clients (client_secret) and public PKCE clients
     const bodyParams = new URLSearchParams({
       client_id: clientId || "",
-      client_secret: clientSecret || "",
       grant_type: "authorization_code",
       redirect_uri: redirectUri,
       code,
     });
 
+    if (clientSecret) {
+      bodyParams.set("client_secret", clientSecret);
+    }
+
     if (codeVerifier) {
       bodyParams.set("code_verifier", codeVerifier);
     }
 
-    const tokenRes = await fetch("https://auth.buffer.com/token", {
+    // Try standard token exchange with client_secret
+    let tokenRes = await fetch("https://auth.buffer.com/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: bodyParams.toString(),
     });
+
+    // If Buffer reports invalid_client, it means the app was registered as a Public Client
+    // (Buffer expects NO client_secret when PKCE alone is configured)
+    if (!tokenRes.ok && bodyParams.has("client_secret")) {
+      const retryBody = new URLSearchParams(bodyParams);
+      retryBody.delete("client_secret");
+      const retryRes = await fetch("https://auth.buffer.com/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: retryBody.toString(),
+      });
+      if (retryRes.ok) {
+        tokenRes = retryRes;
+      }
+    }
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
