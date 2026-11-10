@@ -33,6 +33,7 @@ export async function GET() {
   bufferAuthUrl.searchParams.set("client_id", clientId);
   bufferAuthUrl.searchParams.set("redirect_uri", redirectUri);
   bufferAuthUrl.searchParams.set("response_type", "code");
+  bufferAuthUrl.searchParams.set("scope", "account:read posts:read posts:write");
   bufferAuthUrl.searchParams.set("code_challenge", codeChallenge);
   bufferAuthUrl.searchParams.set("code_challenge_method", "S256");
   bufferAuthUrl.searchParams.set("state", state);
