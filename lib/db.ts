@@ -1,8 +1,14 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { encryptToken, decryptToken } from "./crypto";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// On Vercel / serverless runtimes, root directories are read-only (/var/task).
+// Only /tmp is writable.
+const DATA_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), "podloom_data")
+  : path.join(process.cwd(), "data");
+
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const EPISODES_FILE = path.join(DATA_DIR, "episodes.json");
 const POSTS_FILE = path.join(DATA_DIR, "posts.json");
